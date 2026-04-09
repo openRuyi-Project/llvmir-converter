@@ -1,0 +1,15 @@
+#!/bin/bash
+set -e
+mkdir -p output
+cmd=(
+  /usr/bin/clang-22
+  -O3
+  -fuse-ld=lld
+  -shared
+  -lc
+  -Wl,--version-script=./libxx.so.1_verscript
+  ./libxx.so.1
+  -o
+  output/libxx.so.1
+)
+"${cmd[@]}"

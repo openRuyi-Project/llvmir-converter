@@ -1,0 +1,12 @@
+#!/bin/bash
+set -e
+mkdir -p output
+cmd=(
+  /usr/bin/clang-22
+  -O3
+  -fuse-ld=lld
+  -lc
+  ./test
+  --output=output/test-array
+)
+"${cmd[@]}"

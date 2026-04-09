@@ -1,0 +1,18 @@
+# Default configuration for llvmir-converter.service.
+# This file is sourced by systemd via EnvironmentFile.
+
+LLVMIR_CONVERTER_DIR=/usr/lib/llvmir-convert/bin
+LLVMIR_INPUT_PATHS="/usr/lib64/llvmir /usr/lib/llvmir-bin"
+
+LLVMIR_OUTPUT_DIR=/var/lib/llvmir-converter/normal
+LLVMIR_PGO_OUTPUT_DIR=/var/lib/llvmir-converter/pgo
+LLVMIR_PGO_PROFILES_OUTPUT_DIR=/var/lib/llvmir-converter/pgo-profraw
+
+LLVMIR_CPU_LIMIT=90
+LLVMIR_CPU_RESUME=60
+LLVMIR_MEMORY_LIMIT=85
+LLVMIR_MEMORY_RESUME=70
+LLVMIR_SCAN_INTERVAL=5
+LLVMIR_MONITOR_INTERVAL=1
+
+LLVMIR_RUNNER_FLAGS="--incremental --keep-going"

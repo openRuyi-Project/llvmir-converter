@@ -1,0 +1,6 @@
+LIBXX_1.0 {
+    global:
+        f;
+    local:
+        *;
+};

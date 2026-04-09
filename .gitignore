@@ -1,0 +1,26 @@
+# Compiled binaries
+llvmir-converter
+llvmir-converter-??
+
+# Output directory
+output/
+
+# Temporary files
+*.tmp
+*.temp
+*~
+
+# IDE/Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Object files
+*.o
+*.obj
+
+# Debug files
+*.dSYM/
+*.su
