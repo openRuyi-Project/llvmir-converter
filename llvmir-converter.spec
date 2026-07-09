@@ -1,5 +1,5 @@
-%global git_ver git20260709.1234567
-%global git_commit 1234567890abcdef
+%global git_ver git20260709.42d4876
+%global git_commit 42d4876307d5eb3a0abe4172e128b5ba9b52d3eb
 
 Name:           llvmir-converter
 Version:        0.0.0~%{git_ver}
@@ -8,7 +8,7 @@ Summary:        Convert LLVM IR bitcode command files to ELF outputs
 
 License:        Apache-2.0
 URL:            https://github.com/openRuyi-Project/llvmir-converter.git
-#!RemoteAssert: sha256:1234567890abcdef1234567890abcdef
+#!RemoteAssert: sha256:b8f305ec126a72917df636c28ead65256f28dcfa4c09501b08a8307310db0939
 Source0:        https://github.com/openRuyi-Project/llvmir-converter/archive/%{git_commit}.tar.gz
 
 BuildRequires:  clang22
@@ -27,7 +27,7 @@ scripts into ELF executable or shared library outputs. The package builds one
 converter executable for each clang major version installed on the build host.
 
 %prep
-%autosetup -n %{name}-%{version}
+%autosetup -n %{name}-%{git_commit}
 
 %build
 set -eu
@@ -57,10 +57,6 @@ fi
 echo "Building llvmir-converter for clang versions: $clang_versions"
 make clean
 for clang_version in $clang_versions; do
-    test -d "/usr/include/llvm-${clang_version}" || {
-        echo "error: missing /usr/include/llvm-${clang_version}" >&2
-        exit 1
-    }
     command -v "clang++-${clang_version}" >/dev/null 2>&1 || {
         echo "error: missing clang++-${clang_version}" >&2
         exit 1
