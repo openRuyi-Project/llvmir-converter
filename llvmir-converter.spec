@@ -1,11 +1,12 @@
 %global git_ver git20260709.42d4876
 %global git_commit 42d4876307d5eb3a0abe4172e128b5ba9b52d3eb
+%global llvmir_bindir /usr/lib/llvmir-convert/bin
+%global llvmir_statedir /var/lib/llvmir-converter
 
 Name:           llvmir-converter
-Version:        0.0.0~%{git_ver}
+Version:        0+%{git_ver}
 Release:        %{autorelease}
 Summary:        Convert LLVM IR bitcode command files to ELF outputs
-
 License:        Apache-2.0
 URL:            https://github.com/openRuyi-Project/llvmir-converter.git
 #!RemoteAssert: sha256:b8f305ec126a72917df636c28ead65256f28dcfa4c09501b08a8307310db0939
@@ -14,12 +15,10 @@ Source0:        https://github.com/openRuyi-Project/llvmir-converter/archive/%{g
 BuildRequires:  clang22
 BuildRequires:  llvm22-devel
 BuildRequires:  make
-BuildRequires:  python3
+BuildRequires:  pkgconfig(python3)
 BuildRequires:  systemd-rpm-macros
-Requires:       python3
 
-%global llvmir_bindir /usr/lib/llvmir-convert/bin
-%global llvmir_statedir /var/lib/llvmir-converter
+Requires:       python3
 
 %description
 llvmir-converter converts LLVM IR bitcode files referenced by clang _cmd
@@ -33,7 +32,7 @@ converter executable for each clang major version installed on the build host.
 set -eu
 
 clang_versions=$(
-    for clang in /usr/bin/clang-[0-9]* /bin/clang-[0-9]*; do
+    for clang in %{_bindir}/clang-[0-9]*; do
         [ -x "$clang" ] || continue
         clang_name=${clang##*/}
         clang_version=${clang_name#clang-}
@@ -61,7 +60,7 @@ for clang_version in $clang_versions; do
         echo "error: missing clang++-${clang_version}" >&2
         exit 1
     }
-    make %{?_smp_mflags} LLVM_VER="$clang_version" CXX="clang++-${clang_version}"
+    %make_build LLVM_VER="$clang_version" CXX="clang++-${clang_version}"
 done
 
 %install
@@ -89,7 +88,7 @@ install -m 0644 llvmir-converter.default %{buildroot}%{_sysconfdir}/default/llvm
 
 %files
 %doc README.md CHANGELOG.md USAGE.md
-%dir /usr/lib/llvmir-convert
+%dir %{_prefix}/lib/llvmir-convert
 %dir %{llvmir_bindir}
 %{llvmir_bindir}/llvmir-converter-*
 %{llvmir_bindir}/llvmir_batch_runner.py
