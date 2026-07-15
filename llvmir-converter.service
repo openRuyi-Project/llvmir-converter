@@ -9,10 +9,7 @@ Type=simple
 EnvironmentFile=-/etc/default/llvmir-converter
 WorkingDirectory=/var/lib/llvmir-converter
 
-ExecStartPre=/usr/bin/mkdir -p /var/lib/llvmir-converter/normal /var/lib/llvmir-converter/pgo /var/lib/llvmir-converter/pgo-profraw
-ExecStartPre=/usr/bin/chown root:root /var/lib/llvmir-converter/pgo-profraw
-ExecStartPre=/usr/bin/chmod 1777 /var/lib/llvmir-converter/pgo-profraw
-ExecStart=/bin/sh -eu -c 'exec "$${LLVMIR_CONVERTER_DIR:-/usr/lib/llvmir-convert/bin}/llvmir_batch_runner.py" --converter-dir="$${LLVMIR_CONVERTER_DIR:-/usr/lib/llvmir-convert/bin}" --output-dir="$${LLVMIR_OUTPUT_DIR:-/var/lib/llvmir-converter/normal}" --pgo-output="$${LLVMIR_PGO_OUTPUT_DIR:-/var/lib/llvmir-converter/pgo}" --pgo-profiles-output="$${LLVMIR_PGO_PROFILES_OUTPUT_DIR:-/var/lib/llvmir-converter/pgo-profraw}" --cpu-limit="$${LLVMIR_CPU_LIMIT:-90}" --cpu-resume="$${LLVMIR_CPU_RESUME:-60}" --memory-limit="$${LLVMIR_MEMORY_LIMIT:-85}" --memory-resume="$${LLVMIR_MEMORY_RESUME:-70}" --scan-interval="$${LLVMIR_SCAN_INTERVAL:-5}" --monitor-interval="$${LLVMIR_MONITOR_INTERVAL:-1}" $${LLVMIR_RUNNER_FLAGS:-} $${LLVMIR_INPUT_PATHS:-/usr/lib64/llvmir /usr/lib/llvmir-bin}'
+ExecStart=/bin/sh -eu -c 'exec "$${LLVMIR_CONVERTER_DIR:-/usr/lib/llvmir-convert/bin}/llvmir_batch_runner.py" --converter-dir="$${LLVMIR_CONVERTER_DIR:-/usr/lib/llvmir-convert/bin}" --output-dir="$${LLVMIR_OUTPUT_DIR:-/var/lib/llvmir-converter/normal}" --pgo-output="$${LLVMIR_PGO_OUTPUT_DIR:-/var/lib/llvmir-converter/pgo}" --pgo-profiles-output="$${LLVMIR_PGO_PROFILES_OUTPUT_DIR:-/var/lib/llvmir-converter/pgo-profraw}" --cpu-limit="$${LLVMIR_CPU_LIMIT:-90}" --cpu-resume="$${LLVMIR_CPU_RESUME:-60}" --memory-limit="$${LLVMIR_MEMORY_LIMIT:-85}" --memory-resume="$${LLVMIR_MEMORY_RESUME:-70}" --scan-interval="$${LLVMIR_SCAN_INTERVAL:-5}" --monitor-interval="$${LLVMIR_MONITOR_INTERVAL:-1}" $${LLVMIR_RUNNER_FLAGS:-} ${LLVMIR_INPUT_PATHS}'
 
 Restart=on-failure
 RestartSec=30s

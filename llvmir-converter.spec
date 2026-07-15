@@ -77,7 +77,11 @@ install -m 0755 llvmir_batch_runner.py %{buildroot}%{llvmir_bindir}/
 install -m 0644 llvmir-converter.service %{buildroot}%{_unitdir}/llvmir-converter.service
 install -m 0644 llvmir-converter.default %{buildroot}%{_sysconfdir}/default/llvmir-converter
 
+mkdir -p %{buildroot}%{_tmpfilesdir}
+install -m 0644 llvmir-converter.tmpfile %{buildroot}%{_tmpfilesdir}/%{name}.conf
+
 %post
+%tmpfiles_create %{_tmpfilesdir}/%{name}.conf
 %systemd_post llvmir-converter.service
 
 %preun
@@ -93,6 +97,7 @@ install -m 0644 llvmir-converter.default %{buildroot}%{_sysconfdir}/default/llvm
 %{llvmir_bindir}/llvmir-converter-*
 %{llvmir_bindir}/llvmir_batch_runner.py
 %{_unitdir}/llvmir-converter.service
+%{_tmpfilesdir}/%{name}.conf
 %config(noreplace) %{_sysconfdir}/default/llvmir-converter
 %dir %attr(0755,root,root) %{llvmir_statedir}
 %dir %attr(0755,root,root) %{llvmir_statedir}/normal
