@@ -4,6 +4,7 @@ mkdir -p output
 cmd=(
   /usr/bin/clang-22
   -O3
+  -flto-fat-objects
   -fuse-ld=lld
   -lc
   ./test
