@@ -1,5 +1,11 @@
-%global git_ver git20260717.ca49269
-%global git_commit ca4926920b5eaa1bf516d001f0ae945189895798
+# SPDX-FileCopyrightText: (C) 2026 Institute of Software, Chinese Academy of Sciences (ISCAS)
+# SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
+# SPDX-FileContributor: YunQiang Su <yunqiang@isrc.iscas.ac.cn>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+%global git_ver git20260717.bdb85ba
+%global git_commit bdb85ba7978db3bfeffcbd9505c43cc354e4ad6a
 %global llvmir_bindir /usr/lib/llvmir-convert/bin
 %global llvmir_statedir /var/lib/llvmir-converter
 
@@ -9,7 +15,7 @@ Release:        %{autorelease}
 Summary:        Convert LLVM IR bitcode command files to ELF outputs
 License:        Apache-2.0
 URL:            https://github.com/openRuyi-Project/llvmir-converter.git
-#!RemoteAssert: sha256:2a6a3881d0c680856b53576fe3dad1e692ffafafd986d1a5c8e98e4382bc91d6
+#!RemoteAsset:  sha256:e39a08bd5e8d4bff8ffbbe8673a47ab953703c7a38e4675613d5014f43bf464f
 Source0:        https://github.com/openRuyi-Project/llvmir-converter/archive/%{git_commit}.tar.gz
 
 BuildRequires:  clang22
