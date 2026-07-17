@@ -23,7 +23,8 @@ check: llvmir-converter-$(LLVM_VER)
 	! ./llvmir-converter-$(LLVM_VER) --dry-run -o=output/normal --pgo-output=output/pgo test/llvmir-bin/test_cmd
 	! ./llvmir-converter-$(LLVM_VER) --dry-run -o=output --pgo-output=./output --pgo-profiles-output=pgo-profraw test/llvmir-bin/test_cmd
 	./llvmir-converter-$(LLVM_VER) -t test/template.ll test/llvmir/libxx.so.1_cmd
-	./llvmir-converter-$(LLVM_VER) -t test/template.ll test/llvmir-bin/test_cmd
+	./llvmir-converter-$(LLVM_VER) -t test/template.ll test/llvmir-bin/test_cmd | tee output/filter-fat-lto.log
+	! grep -F -- '-ffat-lto-objects' output/filter-fat-lto.log
 	./llvmir-converter-$(LLVM_VER) -o=output/short -t test/template.ll test/llvmir-bin/test_array_cmd
 	./llvmir-converter-$(LLVM_VER) -t test/template.ll test/llvmir-bin/test_array_cmd
 	./llvmir-converter-$(LLVM_VER) -o=output/pgo-normal --pgo-output=output/pgo --pgo-profiles-output=output/pgo-profraw -t test/template.ll test/llvmir-bin/test_cmd

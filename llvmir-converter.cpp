@@ -825,7 +825,7 @@ static std::vector<std::string> buildLinkArgs(const CmdInfo &Cmd,
 
     // clang does not support GCC's fat LTO object mode for this conversion.
     // Omit it from both regular and PGO link commands.
-    if (Arg == "-flto-fat-objects") {
+    if (Arg == "-ffat-lto-objects") {
       VERBOSE_OUT("Ignoring unsupported argument: " << Arg << "\n");
       continue;
     }
