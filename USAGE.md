@@ -448,8 +448,11 @@ python3 llvmir_batch_runner.py \
 - `--pgo-output <dir>`：传递给 `llvmir-converter`，指定 PGO instrumentation 输出目录
 - `--pgo-profiles-output <dir>`：传递给 `llvmir-converter`，指定运行时 `.profraw` 输出目录；使用 `--pgo-output` 时必须同时指定
 - `--keep-going`：单个 `_cmd` 失败后继续处理其他文件
+- `--failure-log <file>`：保存失败项记录的 JSON 文件；默认是 `<output-dir>/.llvmir-batch-failures.json`
 
 `llvmir_batch_runner.py` 会将 `--pgo-output` 和 `--pgo-profiles-output` 转换为绝对路径后传给底层 converter。`--pgo-output` 不能与 `--output-dir` 解析后的绝对路径相同；只指定 `--pgo-profiles-output` 不会报错，但不会单独生成 PGO 输出。
+
+当转换失败时，runner 会记录 `_cmd` 的绝对路径、最后修改时间（纳秒）、文件大小、失败时间和错误原因。常驻模式重启后仍会读取此记录；文件内容未变化时会跳过转换，并在标准输出中显示失败记录文件的路径。修改该 `_cmd` 文件后，runner 会自动重新尝试；转换成功后会删除对应失败记录。失败记录以原子方式更新，可直接使用 `cat` 或 `jq . <output-dir>/.llvmir-batch-failures.json` 查阅。
 
 ---
 

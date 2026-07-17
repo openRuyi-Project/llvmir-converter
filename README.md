@@ -62,7 +62,7 @@ python3 llvmir_batch_runner.py \
   test/llvmir-bin
 ```
 
-`llvmir_batch_runner.py` 接收一个或多个 `_cmd` 文件或目录作为位置参数；目录会被递归扫描以查找 `*_cmd` 文件。脚本会生成最接近当前 CPU 的 native 模板 LL 文件，并根据 `_cmd` 中的 `clang-XX` 调用对应版本的 `llvmir-converter-XX`。当系统 CPU 或内存使用率超过限制值时，脚本会向当前转换进程组发送 `SIGSTOP`；当 CPU 和内存都低于恢复值时发送 `SIGCONT` 继续转换。默认阈值为：`--cpu-limit=90`、`--cpu-resume=60`、`--memory-limit=85`、`--memory-resume=70`。
+`llvmir_batch_runner.py` 接收一个或多个 `_cmd` 文件或目录作为位置参数；目录会被递归扫描以查找 `*_cmd` 文件。脚本会生成最接近当前 CPU 的 native 模板 LL 文件，并根据 `_cmd` 中的 `clang-XX` 调用对应版本的 `llvmir-converter-XX`。当系统 CPU 或内存使用率超过限制值时，脚本会向当前转换进程组发送 `SIGSTOP`；当 CPU 和内存都低于恢复值时发送 `SIGCONT` 继续转换。默认阈值为：`--cpu-limit=90`、`--cpu-resume=60`、`--memory-limit=85`、`--memory-resume=70`。失败的 `_cmd` 会保存到 `<output-dir>/.llvmir-batch-failures.json`；未修改的失败项在后续扫描和重启后都会被跳过，修改后会自动重试。使用 `--failure-log <file>` 可指定记录文件位置。
 
 批量 runner 会将 `--pgo-output` 和 `--pgo-profiles-output` 以绝对路径转发给底层 converter。使用 `--pgo-output` 时必须同时指定 `--pgo-profiles-output`，且 PGO 输出目录不能与 `--output-dir` 指向同一目录。
 
@@ -78,6 +78,7 @@ python3 llvmir_batch_runner.py \
 | `--dry-run` | 仅解析验证，不执行编译 |
 | `--incremental` | 增量编译，跳过已是最新输出的文件 |
 | `--keep-temp` | 保留临时文件 |
+| `--failure-log=<file>` | 失败项记录 JSON 文件，默认位于输出目录 |
 | `--version` | 显示工具版本信息 |
 | `--tool-version` | 显示工具版本信息 |
 | `--list-targets` | 列出常见目标架构 |
