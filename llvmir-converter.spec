@@ -80,6 +80,7 @@ install -d -m 1777 %{buildroot}%{llvmir_statedir}/pgo-profraw
 
 install -m 0755 llvmir-converter-[0-9]* %{buildroot}%{llvmir_bindir}/
 install -m 0755 llvmir_batch_runner.py %{buildroot}%{llvmir_bindir}/
+install -m 0755 llvmir_pgo_rebuild.py %{buildroot}%{llvmir_bindir}/
 install -m 0644 llvmir-converter.service %{buildroot}%{_unitdir}/llvmir-converter.service
 install -m 0644 llvmir-converter.default %{buildroot}%{_sysconfdir}/default/llvmir-converter
 
