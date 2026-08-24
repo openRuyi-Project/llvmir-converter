@@ -124,13 +124,16 @@ cmd=(
 
 命令中出现多个 `./<file>` 输入时，工具会逐个处理并在链接阶段替换为对应的临时 IR。
 
-启用 `--pgo-output` 时，工具会额外执行一次带 PGO instrumentation 的链接，并追加如下参数：
+启用 `--pgo-output` 时，工具会额外执行一次 LLVM IR PGO instrumentation 链接，并追加如下参数：
 
 ```bash
--fprofile-instr-generate=<pgo-profiles-output>/<output-name>_%p.profraw
+-fprofile-generate -Xclang \
+  -fprofile-instrument-path=<pgo-profiles-output>/<output-name>_%p.profraw
 ```
 
 其中 `<output-name>` 来自 `_cmd` 中 `-o` / `--output` 指定路径的文件名。
+由于输入文件是预编译 LLVM IR/bitcode，必须使用 LLVM IR instrumentation；使用
+`-fprofile-instr-generate` 会选择前端 instrumentation，可能生成没有函数计数器的空 profile。
 
 ### 目录结构
 

@@ -82,17 +82,21 @@ PGO 版本会保持普通输出的子目录规则，例如来自 `llvmir-bin/` �
 
 #### `--pgo-profiles-output=<directory>` - PGO profile raw 输出目录
 
-指定被 instrumentation 的程序运行时写入 `.profraw` 的目录。生成 PGO 版本时，工具会向链接命令追加：
+指定被 instrumentation 的程序运行时写入 `.profraw` 的目录。由于输入是预编译 LLVM IR/bitcode，生成 PGO 版本时，工具会向链接命令追加 LLVM IR instrumentation 参数：
 
 ```bash
--fprofile-instr-generate=<pgo-profiles-output>/<output-name>_%p.profraw
+-fprofile-generate -Xclang \
+  -fprofile-instrument-path=<pgo-profiles-output>/<output-name>_%p.profraw
 ```
 
 其中 `<output-name>` 来自 `_cmd` 中 `-o` / `--output` 指定输出路径的文件名。例如 `_cmd` 中输出为 `output/myapp`，则追加参数为：
 
 ```bash
--fprofile-instr-generate=pgo-profraw/myapp_%p.profraw
+-fprofile-generate -Xclang \
+  -fprofile-instrument-path=/absolute/path/pgo-profraw/myapp_%p.profraw
 ```
+
+`-fprofile-instr-generate` 是前端 instrumentation 选项。对于本工具接收的预编译 LLVM IR，使用它可能只生成不包含函数计数器的空 `.profraw`；因此 PGO 输出使用 LLVM IR instrumentation 组合。
 
 #### `-t=<filename>` - 模板文件
 

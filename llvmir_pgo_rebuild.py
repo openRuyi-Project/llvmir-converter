@@ -178,12 +178,22 @@ def build_rebuild_command(command, profile_path, output_path):
             result.append(f"-o{output_path}")
             output_replaced = True
             continue
-        if token.startswith("-fprofile-instr-generate"):
+        if token in {"-fprofile-generate", "-fprofile-instr-generate"}:
+            continue
+        if token.startswith((
+            "-fprofile-instr-generate=",
+            "-fprofile-instrument-path=",
+        )):
+            continue
+        if token == "-Xclang" and index + 1 < len(command) and command[index + 1].startswith(
+            "-fprofile-instrument-path"
+        ):
+            skip_next = True
             continue
         result.append(token)
     if not output_replaced:
         result.extend(("-o", str(output_path)))
-    result.append(f"-fprofile-instr-use={profile_path}")
+    result.append(f"-fprofile-use={profile_path}")
     return result
 
 

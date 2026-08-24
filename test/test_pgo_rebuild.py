@@ -47,7 +47,27 @@ class PgoRebuildTest(unittest.TestCase):
         self.assertEqual(str(self.root / "test"), rebuilt[4])
         self.assertNotIn("-fprofile-instr-generate=profiles/test_%p.profraw", rebuilt)
         self.assertEqual(
-            f"-fprofile-instr-use={self.root / 'test.profdata'}", rebuilt[-1]
+            f"-fprofile-use={self.root / 'test.profdata'}", rebuilt[-1]
+        )
+
+    def test_build_rebuild_command_removes_llvm_instrumentation_pair(self):
+        command = [
+            "/usr/bin/clang-22", "-O3", "-fprofile-generate", "-Xclang",
+            "-fprofile-instrument-path=profiles/test_%p.profraw", "./test",
+            "-o", "output/test",
+        ]
+
+        rebuilt = PGO.build_rebuild_command(
+            command, self.root / "test.profdata", self.root / "test"
+        )
+
+        self.assertNotIn("-fprofile-generate", rebuilt)
+        self.assertNotIn("-Xclang", rebuilt)
+        self.assertNotIn(
+            "-fprofile-instrument-path=profiles/test_%p.profraw", rebuilt
+        )
+        self.assertEqual(
+            f"-fprofile-use={self.root / 'test.profdata'}", rebuilt[-1]
         )
 
     def test_converter_command_uses_versioned_converter_and_temp_cmd(self):
@@ -71,7 +91,7 @@ class PgoRebuildTest(unittest.TestCase):
             self.assertEqual(f"-t={self.root / 'template.ll'}", converter_command[2])
             self.assertEqual(temporary_cmd, Path(converter_command[3]))
             self.assertIn(
-                f"-fprofile-instr-use={self.root / 'app.profdata'}",
+                f"-fprofile-use={self.root / 'app.profdata'}",
                 temporary_cmd.read_text(encoding="utf-8"),
             )
         finally:

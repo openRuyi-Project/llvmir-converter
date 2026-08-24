@@ -14,9 +14,7 @@
 
 #include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/CodeGen/CommandFlags.h"
-#include "llvm/IR/Constants.h"
 #include "llvm/IR/LLVMContext.h"
-#include "llvm/IR/GlobalVariable.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/ModuleSummaryIndex.h"
 #include "llvm/IRReader/IRReader.h"
@@ -26,7 +24,6 @@
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/ToolOutputFile.h"
 #include "llvm/TargetParser/RISCVISAInfo.h"
-#include "llvm/IR/IRBuilder.h"
 #include "llvm/Config/llvm-config.h"
 #include <memory>
 #include <optional>
@@ -569,38 +566,6 @@ static std::string mergeFeatures(StringRef BaseFeatures, StringRef OverrideFeatu
   return Result;
 }
 
-static bool setProfileFilename(Module &M, const std::string &ProfileFilename) {
-  if (ProfileFilename.empty())
-    return true;
-
-  LLVMContext &Context = M.getContext();
-  Constant *Initializer = ConstantDataArray::getString(Context, ProfileFilename, true);
-  auto *ArrayTy = cast<ArrayType>(Initializer->getType());
-
-  if (GlobalVariable *Existing = M.getGlobalVariable("__llvm_profile_filename", true)) {
-    if (!Existing->use_empty() && Existing->getValueType() != ArrayTy) {
-      errs() << "Error: Existing __llvm_profile_filename has incompatible uses\n";
-      return false;
-    }
-
-    if (Existing->getValueType() == ArrayTy) {
-      Existing->setInitializer(Initializer);
-      Existing->setConstant(true);
-      Existing->setVisibility(GlobalValue::HiddenVisibility);
-      Existing->setComdat(M.getOrInsertComdat("__llvm_profile_filename"));
-      return true;
-    }
-
-    Existing->eraseFromParent();
-  }
-
-  auto *GV = new GlobalVariable(M, ArrayTy, true, GlobalValue::ExternalLinkage,
-                                Initializer, "__llvm_profile_filename");
-  GV->setVisibility(GlobalValue::HiddenVisibility);
-  GV->setComdat(M.getOrInsertComdat("__llvm_profile_filename"));
-  return true;
-}
-
 //===----------------------------------------------------------------------===//
 // IR Processing
 //===----------------------------------------------------------------------===//
@@ -684,6 +649,12 @@ static bool processIR(const std::string &InputPath,
     // New features take precedence over existing function features
     std::string MergedFeatures = mergeFeatures(ExistingFeatures, FeaturesStr);
     F.addFnAttr("target-features", MergedFeatures);
+
+    // LLVM's IR instrumentation pass skips optnone functions. Remove this
+    // frontend-only attribute from the PGO copy so it can collect counters;
+    // the regular output keeps the input function attributes unchanged.
+    if (ProfileFilename && F.hasOptNone())
+      F.removeFnAttr(Attribute::OptimizeNone);
   }
 
   // Step 4: Handle RISC-V specific metadata
@@ -718,9 +689,6 @@ static bool processIR(const std::string &InputPath,
       }
     }
   }
-
-  if (ProfileFilename && !setProfileFilename(*M, *ProfileFilename))
-    return false;
 
   // Step 5: Write the processed module as bitcode
   std::error_code EC;
@@ -849,6 +817,15 @@ static std::vector<std::string> buildLinkArgs(const CmdInfo &Cmd,
       Arg = replaceClangArg(Arg, ClangSuffix);
 
     Args.push_back(Arg);
+
+    // Temporary IR files do not retain their original extension. Tell clang
+    // explicitly to treat the substituted input as LLVM IR, otherwise an
+    // extensionless bitcode path selects the frontend profiling pipeline.
+    if (I + 1 < Cmd.CommandArgs.size() &&
+        TempInputPaths.find(Cmd.CommandArgs[I + 1]) != TempInputPaths.end()) {
+      Args.push_back("-x");
+      Args.push_back("ir");
+    }
   }
 
   Args.insert(Args.end(), ExtraArgs.begin(), ExtraArgs.end());
@@ -1131,8 +1108,13 @@ static bool processCmdFile(const std::string &CmdPath,
       PgoTempInputPaths[InputFile] = TempPgoIRPath;
     }
 
+    // The input is already LLVM IR/bitcode. Use LLVM IR instrumentation here;
+    // -fprofile-instr-generate selects front-end instrumentation, which has no
+    // counters to record when the frontend receives precompiled IR.
     std::vector<std::string> PgoExtraArgs = {
-      "-fprofile-instr-generate=" + PgoProfilePattern
+      "-fprofile-generate",
+      "-Xclang",
+      "-fprofile-instrument-path=" + PgoProfilePattern
     };
     std::vector<std::string> PgoLinkArgs = buildLinkArgs(Cmd, PgoTempInputPaths,
                                                           TempPgoOutputPath,
