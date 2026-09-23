@@ -22,19 +22,24 @@ def log(message):
     print(message, flush=True)
 
 
-def find_clang():
-    for candidate in ("clang", "clang-22", "clang-21", "clang-20", "clang-19", "clang-18"):
+def find_clang(version):
+    candidates = [f"clang-{version}"] if version else []
+    candidates.extend(("clang", "clang-24", "clang-23", "clang-22", "clang-21", "clang-20", "clang-19", "clang-18"))
+    for candidate in candidates:
         path = shutil.which(candidate)
         if path:
             return path
-    raise RuntimeError("cannot find clang in PATH")
+    suffix = f"-{version}" if version else ""
+    raise RuntimeError(f"cannot find clang{suffix} in PATH")
 
 
-def generate_native_template(output_dir):
+def generate_native_template(output_dir, version):
     """Generate the same native target-feature template as batch runner."""
     output_dir.mkdir(parents=True, exist_ok=True)
-    template_path = output_dir / ".llvmir-native-template.ll"
-    clang = find_clang()
+    template_path = output_dir / f".llvmir-native-template-clang-{version}.ll"
+    if template_path.is_file():
+        return template_path
+    clang = find_clang(version)
     with tempfile.TemporaryDirectory(prefix="llvmir-template-") as temp_dir:
         source_path = Path(temp_dir) / "template.c"
         source_path.write_text("void template(void) {}\n", encoding="utf-8")
@@ -341,12 +346,8 @@ def main():
     if not profraw_dir.is_dir():
         raise SystemExit(f"profraw directory does not exist: {profraw_dir}")
 
-    template_path = (
-        args.template.resolve()
-        if args.template
-        else generate_native_template(output_dir)
-    )
-    if not template_path.is_file():
+    template_path = args.template.resolve() if args.template else None
+    if template_path is not None and not template_path.is_file():
         raise SystemExit(f"template LL file does not exist: {template_path}")
     output_dir.mkdir(parents=True, exist_ok=True)
     (output_dir / "lib").mkdir(exist_ok=True)
@@ -374,6 +375,11 @@ def main():
             temporary_workspace = None
             try:
                 version = clang_version(cmd_path, command)
+                target_template = (
+                    template_path
+                    if template_path is not None
+                    else generate_native_template(output_dir, version)
+                )
                 profdata = profdata_dir / f"{target}.profdata"
                 output = output_dir / output_subdir(cmd_path) / target
                 merge = [find_profdata(version), "merge", "-output", str(profdata)]
@@ -384,7 +390,7 @@ def main():
                 )
                 converter = find_converter(version, args.converter_dir)
                 rebuild = build_converter_command(
-                    converter, output_dir, template_path, temporary_cmd
+                    converter, output_dir, target_template, temporary_cmd
                 )
                 run(rebuild, cmd_path.parent, args.dry_run)
                 log(f"Rebuilt {target} from {len(profiles)} profraw file(s)")

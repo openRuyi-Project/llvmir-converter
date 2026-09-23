@@ -107,18 +107,24 @@ def memory_usage_percent():
     return max(0.0, min(100.0, 100.0 * (total - available) / total))
 
 
-def find_clang():
-    for candidate in ("clang", "clang-22", "clang-21", "clang-20", "clang-19", "clang-18"):
+def find_clang(version):
+    candidates = [f"clang-{version}"] if version else []
+    candidates.extend(("clang", "clang-24", "clang-23", "clang-22", "clang-21", "clang-20", "clang-19", "clang-18"))
+    for candidate in candidates:
         path = shutil.which(candidate)
         if path:
             return path
-    raise RuntimeError("cannot find clang in PATH")
+    suffix = f"-{version}" if version else ""
+    raise RuntimeError(f"cannot find clang{suffix} in PATH")
 
 
-def generate_native_template(output_dir):
+def generate_native_template(output_dir, version=None):
     output_dir.mkdir(parents=True, exist_ok=True)
-    template_path = output_dir / ".llvmir-native-template.ll"
-    clang = find_clang()
+    version_suffix = f"-clang-{version}" if version else ""
+    template_path = output_dir / f".llvmir-native-template{version_suffix}.ll"
+    if template_path.is_file():
+        return template_path
+    clang = find_clang(version)
     with tempfile.TemporaryDirectory(prefix="llvmir-template-") as temp_dir:
         source_path = Path(temp_dir) / "template.c"
         source_path.write_text("void template(void) {}\n", encoding="utf-8")
@@ -302,8 +308,10 @@ def run_with_throttling(command, args):
         raise
 
 
-def process_cmd_file(cmd_path, args, template_path):
+def process_cmd_file(cmd_path, args, template_path=None):
     version = extract_converter_version(cmd_path)
+    if template_path is None:
+        template_path = generate_native_template(Path(args.output_dir).resolve(), version)
     converter = find_converter(version, args.converter_dir)
     command = build_converter_command(args, converter, template_path, cmd_path)
     return run_with_throttling(command, args)
@@ -360,7 +368,7 @@ def process_cmd_files(cmd_files, args, template_path, processed, failures, failu
 def main():
     args = parse_args()
     output_dir = Path(args.output_dir).resolve()
-    template_path = Path(args.template).resolve() if args.template else generate_native_template(output_dir)
+    template_path = Path(args.template).resolve() if args.template else None
     processed = {}
     failure_log_path = Path(args.failure_log).resolve() if args.failure_log else output_dir / ".llvmir-batch-failures.json"
     failures = load_failures(failure_log_path)

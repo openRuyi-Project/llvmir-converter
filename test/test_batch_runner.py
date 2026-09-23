@@ -58,6 +58,22 @@ class BatchRunnerFailureLogTest(unittest.TestCase):
 
         self.assertEqual({}, RUNNER.load_failures(self.failure_log_path))
 
+    def test_native_template_is_version_specific(self):
+        args = SimpleNamespace(output_dir=str(self.root), converter_dir=None)
+        with patch.object(RUNNER, "find_clang", return_value="/usr/bin/clang-23") as find_clang:
+            with patch.object(RUNNER.subprocess, "run") as run:
+                template = RUNNER.generate_native_template(self.root, "23")
+
+        self.assertEqual(self.root / ".llvmir-native-template-clang-23.ll", template)
+        find_clang.assert_called_once_with("23")
+        run.assert_called_once()
+        self.assertEqual("/usr/bin/clang-23", run.call_args.args[0][0])
+
+        template.touch()
+        with patch.object(RUNNER, "find_clang") as find_clang:
+            self.assertEqual(template, RUNNER.generate_native_template(self.root, "23"))
+            find_clang.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()

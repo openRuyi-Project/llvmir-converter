@@ -2,6 +2,7 @@ import importlib.util
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 
 SCRIPT_PATH = Path(__file__).resolve().parents[1] / "llvmir_pgo_rebuild.py"
@@ -183,6 +184,21 @@ class PgoRebuildTest(unittest.TestCase):
         cmd_files = PGO.find_cmd_files([first, second, first_cmd])
 
         self.assertEqual([first_cmd.resolve(), second_cmd.resolve()], cmd_files)
+
+    def test_native_template_is_version_specific(self):
+        with patch.object(PGO, "find_clang", return_value="/usr/bin/clang-23") as find_clang:
+            with patch.object(PGO.subprocess, "run") as run:
+                template = PGO.generate_native_template(self.root, "23")
+
+        self.assertEqual(self.root / ".llvmir-native-template-clang-23.ll", template)
+        find_clang.assert_called_once_with("23")
+        run.assert_called_once()
+        self.assertEqual("/usr/bin/clang-23", run.call_args.args[0][0])
+
+        template.touch()
+        with patch.object(PGO, "find_clang") as find_clang:
+            self.assertEqual(template, PGO.generate_native_template(self.root, "23"))
+            find_clang.assert_not_called()
 
 
 if __name__ == "__main__":

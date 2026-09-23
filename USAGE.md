@@ -327,6 +327,13 @@ LIBMYLIB_1.0 {
 
 模板文件用于指定目标特性（target-features），这些特性将被合并到输入 IR 的每个函数中。
 
+通常同名特性由模板覆盖，命令行特性又优先于模板。例外是按输入模块
+target triple 选择的保护列表：目前 x86/x86_64 列表仅包含 `rtm`，其他架构
+（包括缺失或未知 triple）列表为空。如果输入函数已有 `+rtm`，合并时不会被
+`-rtm` 覆盖；没有 `rtm` 或原本为 `-rtm` 的函数仍遵循普通覆盖规则。
+此规则不会自动保护其他 ISA 特性，也不保证目标机器支持 RTM；调用方仍需
+保证运行时指令集兼容。普通输出和 PGO 输出使用相同规则。
+
 ### 创建模板文件
 
 #### 方法 1：手动创建
@@ -432,7 +439,7 @@ python3 llvmir_batch_runner.py \
   test/llvmir-bin
 ```
 
-必选参数为一个或多个输入路径，可以是 `_cmd` 文件，也可以是包含 `*_cmd` 文件的目录；目录会被递归扫描。`--output-dir` 默认值为 `output`。脚本会读取 `_cmd` 中的 `clang-XX` 并优先调用同版本 `llvmir-converter-XX`，同时自动生成 `-march=native` 模板 LL 文件用于 `-t` 参数。
+必选参数为一个或多个输入路径，可以是 `_cmd` 文件，也可以是包含 `*_cmd` 文件的目录；目录会被递归扫描。`--output-dir` 默认值为 `output`。脚本会读取 `_cmd` 中的 `clang-XX` 并优先调用同版本的 `llvmir-converter-XX`，同时使用对应版本的 clang 生成并缓存 `.llvmir-native-template-clang-XX.ll`，避免不同版本共用模板。
 
 性能相关选项都有默认值，可按需覆盖：
 

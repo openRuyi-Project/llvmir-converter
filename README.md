@@ -62,7 +62,7 @@ python3 llvmir_batch_runner.py \
   test/llvmir-bin
 ```
 
-`llvmir_batch_runner.py` 接收一个或多个 `_cmd` 文件或目录作为位置参数；目录会被递归扫描以查找 `*_cmd` 文件。脚本会生成最接近当前 CPU 的 native 模板 LL 文件，并根据 `_cmd` 中的 `clang-XX` 调用对应版本的 `llvmir-converter-XX`。当系统 CPU 或内存使用率超过限制值时，脚本会向当前转换进程组发送 `SIGSTOP`；当 CPU 和内存都低于恢复值时发送 `SIGCONT` 继续转换。默认阈值为：`--cpu-limit=90`、`--cpu-resume=60`、`--memory-limit=85`、`--memory-resume=70`。失败的 `_cmd` 会保存到 `<output-dir>/.llvmir-batch-failures.json`；未修改的失败项在后续扫描和重启后都会被跳过，修改后会自动重试。使用 `--failure-log <file>` 可指定记录文件位置。
+`llvmir_batch_runner.py` 接收一个或多个 `_cmd` 文件或目录作为位置参数；目录会被递归扫描以查找 `*_cmd` 文件。脚本会按 `_cmd` 使用的 Clang 主版本生成并缓存对应的 native 模板 LL 文件，并调用对应版本的 `llvmir-converter-XX`。当系统 CPU 或内存使用率超过限制值时，脚本会向当前转换进程组发送 `SIGSTOP`；当 CPU 和内存都低于恢复值时发送 `SIGCONT` 继续转换。默认阈值为：`--cpu-limit=90`、`--cpu-resume=60`、`--memory-limit=85`、`--memory-resume=70`。失败的 `_cmd` 会保存到 `<output-dir>/.llvmir-batch-failures.json`；未修改的失败项在后续扫描和重启后都会被跳过，修改后会自动重试。使用 `--failure-log <file>` 可指定记录文件位置。
 
 ### 手动使用 PGO profile 重建 ELF
 
@@ -76,7 +76,7 @@ python3 llvmir_batch_runner.py \
   /usr/lib64/llvmir /usr/lib64/llvmir-bin
 ```
 
-`--converter-dir` 的查找顺序与 `llvmir_batch_runner.py` 一致：先查该目录，再查脚本目录、当前目录和 `PATH`。版本化名称优先使用 `llvmir-converter-XX`，其次是 `llvmir-convert-XX`，最后回退到无版本名称。未指定 `--template` 时，脚本会在输出目录生成 `.llvmir-native-template.ll`，其生成方式与 batch runner 相同；也可以用 `--template <file>` 指定已有模板。首次运行可以加 `--dry-run` 检查待执行的 `llvm-profdata merge` 和 `llvmir-converter-XX` 命令。合并生成的 `.profdata` 和临时 `_cmd` 会在本次运行结束后自动删除。多个 IR 路径可以是目录或单个 `*_cmd` 文件，目录会递归扫描并自动去重。
+`--converter-dir` 的查找顺序与 `llvmir_batch_runner.py` 一致：先查该目录，再查脚本目录、当前目录和 `PATH`。版本化名称优先使用 `llvmir-converter-XX`，其次是 `llvmir-convert-XX`，最后回退到无版本名称。未指定 `--template` 时，脚本会按 `_cmd` 使用的 Clang 主版本生成并缓存 `.llvmir-native-template-clang-XX.ll`，避免不同 LLVM 版本共用模板；也可以用 `--template <file>` 指定已有模板。首次运行可以加 `--dry-run` 检查待执行的 `llvm-profdata merge` 和 `llvmir-converter-XX` 命令。合并生成的 `.profdata` 和临时 `_cmd` 会在本次运行结束时自动删除。多个 IR 路径可以是目录或单个 `*_cmd` 文件，目录会递归扫描并自动去重。
 
 批量 runner 会将 `--pgo-output` 和 `--pgo-profiles-output` 以绝对路径转发给底层 converter。使用 `--pgo-output` 时必须同时指定 `--pgo-profiles-output`，且 PGO 输出目录不能与 `--output-dir` 指向同一目录。
 

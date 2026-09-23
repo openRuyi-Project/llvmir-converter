@@ -1,0 +1,10 @@
+#!/bin/bash
+set -e
+mkdir -p output
+cmd=(
+  /usr/bin/clang-22
+  ./target_features_input.ll
+  -o
+  output/target_features
+)
+"${cmd[@]}"

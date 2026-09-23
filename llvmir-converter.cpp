@@ -12,6 +12,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "llvm/ADT/ArrayRef.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/CodeGen/CommandFlags.h"
 #include "llvm/IR/LLVMContext.h"
@@ -24,6 +25,7 @@
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/ToolOutputFile.h"
 #include "llvm/TargetParser/RISCVISAInfo.h"
+#include "llvm/TargetParser/Triple.h"
 #include "llvm/Config/llvm-config.h"
 #include <memory>
 #include <optional>
@@ -530,11 +532,26 @@ static std::map<std::string, bool> parseFeatures(StringRef FeaturesStr) {
   return Features;
 }
 
+/// Architecture-specific exceptions for features enabled in input functions.
+/// Unlisted architectures (including an unknown triple) have no exceptions.
+static ArrayRef<StringRef> getProtectedFeatures(const Triple &TargetTriple) {
+  static const StringRef X86Features[] = {"rtm"};
+  switch (TargetTriple.getArch()) {
+  case Triple::x86:
+  case Triple::x86_64:
+    return X86Features;
+  default:
+    return {};
+  }
+}
+
 /// Merge two feature strings with override semantics.
 ///
 /// \param BaseFeatures The base feature string (existing features)
 /// \param OverrideFeatures The override feature string (new features to apply)
-/// \return A merged feature string where OverrideFeatures takes precedence
+/// \param ProtectedFeatures Enabled base features that cannot be overridden
+/// \return A merged feature string where OverrideFeatures takes precedence,
+/// except for protected features already enabled in BaseFeatures
 ///
 /// This function is used when:
 /// 1. Merging template features with command-line features
@@ -544,14 +561,19 @@ static std::map<std::string, bool> parseFeatures(StringRef FeaturesStr) {
 ///   Base:     "+sse,+sse2,-avx"
 ///   Override: "+avx,+avx2"
 ///   Result:   "+avx,+avx2,+sse,+sse2"  (avx is now enabled, sse/sse2 preserved)
-static std::string mergeFeatures(StringRef BaseFeatures, StringRef OverrideFeatures) {
+static std::string mergeFeatures(StringRef BaseFeatures, StringRef OverrideFeatures,
+                                 ArrayRef<StringRef> ProtectedFeatures = {}) {
   // Parse both feature strings into maps
   auto Features = parseFeatures(BaseFeatures);
   auto Override = parseFeatures(OverrideFeatures);
 
-  // Merge: override features take precedence over base features
-  // This means if a feature appears in both, the OverrideFeatures setting wins
+  // Override features win unless the base explicitly enables a protected one.
   for (const auto &KV : Override) {
+    auto It = Features.find(KV.first);
+    if (It != Features.end() && It->second &&
+        std::find(ProtectedFeatures.begin(), ProtectedFeatures.end(),
+                  StringRef(KV.first)) != ProtectedFeatures.end())
+      continue;
     Features[KV.first] = KV.second;
   }
 
@@ -643,11 +665,14 @@ static bool processIR(const std::string &InputPath,
 
   // Step 3: Apply merged features to all functions in the input module
   // Each function may have its own target-features; we merge with the new ones
+  ArrayRef<StringRef> ProtectedFeatures =
+      getProtectedFeatures(Triple(M->getTargetTriple()));
   for (Function &F : *M) {
     std::string ExistingFeatures = F.getFnAttribute("target-features")
                                    .getValueAsString().str();
-    // New features take precedence over existing function features
-    std::string MergedFeatures = mergeFeatures(ExistingFeatures, FeaturesStr);
+    // Preserve only listed features already enabled by the input function.
+    std::string MergedFeatures =
+        mergeFeatures(ExistingFeatures, FeaturesStr, ProtectedFeatures);
     F.addFnAttr("target-features", MergedFeatures);
 
     // LLVM's IR instrumentation pass skips optnone functions. Remove this
